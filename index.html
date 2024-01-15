@@ -19,7 +19,7 @@
 
 <body onload="init()">
 
-<h3 class="m-3" style="text-align: center;">PA2</h2>
+<h3 class="m-3" style="text-align: center;">PA3</h2>
 
 
    <div class="container mt-5">
@@ -31,10 +31,22 @@
       </div>
       <div class="d-flex">
          <div id="canvas-holder">
-            <canvas class="rounded-1" width="800" height="600" id="webglcanvas" style="background-color: teal"></canvas>
+            <canvas class="rounded-1" width="800" height="700" id="webglcanvas" style="background-color: teal"></canvas>
          </div>
 
          <div class="p-2" style="width: 100%">
+            <button type="button" class="btn btn-primary" onclick="SwitchAnimation()">Start/Stop Animation</button>
+            <hr>
+            <div class="input-group mb-3">
+               <label for="x_velocity" class="form-label">X Velocity: </label>
+               <b id="xvelocity_text">0</b>
+               <input type="range" class="form-range" min="-1" max="1" step="0.1" id="x_velocity" value="0">
+            </div>
+            <div class="input-group mb-3">
+               <label for="yvelocity_text" class="form-label">Y Velocity: </label>
+               <b id="yvelocity_text">1</b>
+               <input type="range" class="form-range" min="-1" max="1" step="0.1" id="y_velocity" value="1">
+            </div>
             <div class="input-group mb-3">
                <label for="radius" class="form-label">Radius: </label>
                <b id="radius_text">1</b>
@@ -82,6 +94,9 @@
    var input_sh = document.getElementById("Shininess");
    var input_sc = document.getElementById("scale");
    var input_r = document.getElementById("radius");
+   var input_xv = document.getElementById("x_velocity");
+   var input_yv = document.getElementById("y_velocity");
+
 
 
    input_a.addEventListener("input", function() {
@@ -111,6 +126,20 @@
       draw();
    }, false);
 
+   input_xv.addEventListener("input", function() {
+      AnimationVelocity[0] = this.value;
+      document.getElementById("xvelocity_text").innerHTML = AnimationVelocity[0];
+      BuildSegment();
+      draw();
+   }, false);
+
+   input_yv.addEventListener("input", function() {
+      AnimationVelocity[1] = this.value;
+      document.getElementById("yvelocity_text").innerHTML = AnimationVelocity[1];
+      BuildSegment();
+      draw();
+   }, false);
+
    input_sc.addEventListener("input", function() {
       scale = this.value;
       document.getElementById("scale_text").innerHTML = scale;
@@ -121,6 +150,7 @@
       ModelRadius = this.value;
       document.getElementById("radius_text").innerHTML = ModelRadius;
       BuildSurface();
+      BuildSegment();
       draw();
    }, false);
 
