@@ -5,7 +5,7 @@
    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 
-   <title>PA#2</title>
+   <title>CGW</title>
 
    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
@@ -19,70 +19,75 @@
 
 <body onload="init()">
 
-<h3 class="m-3" style="text-align: center;">PA3</h2>
+<h2 class="m-3" style="text-align: center;">CGW</h2>
 
 
-   <div class="container mt-5">
-      <div class="row mb-4" style="display: flex; width: 100%;">
-         <span style="flex: 1;"><b>Light:</b>Directional</span>
-         <span style="flex: 1;"><b>Shading:</b>Gouraud</span>
-         <span style="flex: 1;"><b>Projection:</b>Perspective</span>
-         <span style="flex: 1;"><b>Analytics:</b>Normal</span>
+<div class="container mt-5">
+   <div class="row mb-4" style="display: flex; width: 100%;">
+      <span style="flex: 1;"><b>Light:</b>Directional</span>
+      <span style="flex: 1;"><b>Shading:</b>Gouraud</span>
+      <span style="flex: 1;"><b>Projection:</b>Perspective</span>
+      <span style="flex: 1;"><b>Analytics:</b>Normal</span>
+   </div>
+   <div class="d-flex">
+      <div id="canvas-holder">
+         <canvas class="rounded-1" width="800" height="700" id="webglcanvas" style="background-color: teal"></canvas>
       </div>
-      <div class="d-flex">
-         <div id="canvas-holder">
-            <canvas class="rounded-1" width="800" height="700" id="webglcanvas" style="background-color: teal"></canvas>
+
+      <div class="p-2" style="width: 100%">
+         <button type="button" class="btn btn-primary" onclick="SwitchAnimation()">Start/Stop Animation</button>
+         <hr>
+         <div class="input-group mb-3">
+            <label for="tRotation" class="form-label">Rotation: </label>
+            <b id="tRotation_text">0</b>
+            <input type="range" class="form-range" min="0" max="180" step="1" id="tRotation" value="0">
+         </div>
+         <div class="input-group mb-3">
+            <label for="x_velocity" class="form-label">X Velocity: </label>
+            <b id="xvelocity_text">0</b>
+            <input type="range" class="form-range" min="-1" max="1" step="0.1" id="x_velocity" value="0">
+         </div>
+         <div class="input-group mb-3">
+            <label for="yvelocity_text" class="form-label">Y Velocity: </label>
+            <b id="yvelocity_text">1</b>
+            <input type="range" class="form-range" min="-1" max="1" step="0.1" id="y_velocity" value="1">
+         </div>
+         <div class="input-group mb-3">
+            <label for="radius" class="form-label">Radius: </label>
+            <b id="radius_text">1</b>
+            <input type="range" class="form-range" min="0" max="5" step="0.1" id="radius" value="1">
+         </div>
+         <div class="input-group mb-3">
+            <label for="Shininess" class="form-label">Shininess: </label>
+            <b id="Shininess_text">12</b>
+            <input type="range" class="form-range" min="12" max="32" step="1" id="Shininess" value="1">
+         </div>
+         <div class="input-group mb-3">
+            <label for="scale" class="form-label">Zoom: </label>
+            <b id="scale_text">1</b>
+            <input type="range" class="form-range" min="0.2" max="1" step="0.1" id="scale" value="0.3">
+         </div>
+         <div class="input-group mb-3">
+            <label for="LightIntensity" class="form-label">Light Intensity: </label>
+            <b id="LightIntensity_text">1</b>
+            <input type="range" class="form-range" min="0" max="5" step="0.1" id="LightIntensity" value="1">
          </div>
 
-         <div class="p-2" style="width: 100%">
-            <button type="button" class="btn btn-primary" onclick="SwitchAnimation()">Start/Stop Animation</button>
-            <hr>
-            <div class="input-group mb-3">
-               <label for="x_velocity" class="form-label">X Velocity: </label>
-               <b id="xvelocity_text">0</b>
-               <input type="range" class="form-range" min="-1" max="1" step="0.1" id="x_velocity" value="0">
-            </div>
-            <div class="input-group mb-3">
-               <label for="yvelocity_text" class="form-label">Y Velocity: </label>
-               <b id="yvelocity_text">1</b>
-               <input type="range" class="form-range" min="-1" max="1" step="0.1" id="y_velocity" value="1">
-            </div>
-            <div class="input-group mb-3">
-               <label for="radius" class="form-label">Radius: </label>
-               <b id="radius_text">1</b>
-               <input type="range" class="form-range" min="0" max="5" step="0.1" id="radius" value="1">
-            </div>
-            <div class="input-group mb-3">
-               <label for="Shininess" class="form-label">Shininess: </label>
-               <b id="Shininess_text">12</b>
-               <input type="range" class="form-range" min="12" max="32" step="1" id="Shininess" value="1">
-            </div>
-            <div class="input-group mb-3">
-               <label for="scale" class="form-label">Zoom: </label>
-               <b id="scale_text">1</b>
-               <input type="range" class="form-range" min="0.2" max="1" step="0.1" id="scale" value="0.3">
-            </div>
-            <div class="input-group mb-3">
-               <label for="LightIntensity" class="form-label">Light Intensity: </label>
-               <b id="LightIntensity_text">1</b>
-               <input type="range" class="form-range" min="0" max="5" step="0.1" id="LightIntensity" value="1">
-            </div>
-
-            <div class="input-group mb-3">
-               <span class="input-group-text">Ambient</span>
-               <input id="AmbientColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="AmbientColor" value="#191919">
-            </div>
-            <div class="input-group mb-3">
-               <span class="input-group-text">Diffuse</span>
-               <input id="DiffuseColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="DiffuseColor" value="#B21919">
-            </div>
-            <div class="input-group mb-3">
-               <span class="input-group-text">Specular</span>
-               <input id="SpecularColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="SpecularColor" value="#DCDCDC">
-            </div>
+         <div class="input-group mb-3">
+            <span class="input-group-text">Ambient</span>
+            <input id="AmbientColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="AmbientColor" value="#191919">
+         </div>
+         <div class="input-group mb-3">
+            <span class="input-group-text">Diffuse</span>
+            <input id="DiffuseColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="DiffuseColor" value="#B21919">
+         </div>
+         <div class="input-group mb-3">
+            <span class="input-group-text">Specular</span>
+            <input id="SpecularColor" type="color" class="form-control h-auto d-inline-block" aria-describedby="SpecularColor" value="#DCDCDC">
          </div>
       </div>
    </div>
+</div>
 
 </body>
 
@@ -96,7 +101,7 @@
    var input_r = document.getElementById("radius");
    var input_xv = document.getElementById("x_velocity");
    var input_yv = document.getElementById("y_velocity");
-
+   var input_ts = document.getElementById("tRotation");
 
 
    input_a.addEventListener("input", function() {
@@ -123,6 +128,12 @@
    input_li.addEventListener("input", function() {
       LightIntensity = this.value;
       document.getElementById("LightIntensity_text").innerHTML = LightIntensity;
+      draw();
+   }, false);
+
+   input_ts.addEventListener("input", function() {
+      rotateValue = this.value;
+      document.getElementById("tRotation_text").innerHTML = this.value;
       draw();
    }, false);
 

@@ -8,11 +8,10 @@ let lineProgram;
 let line;
 let segment;
 let segmentProgram;
-
 let ModelRadius = 1;
-let scale = 1.0;
+let scale = 0.3;
 let AmbientColor = [0.1, 0.1, 0.1];
-let DiffuseColor = [0.7, 0.1, 0.1];
+let DiffuseColor = [1.0, 1.0, 1.0];
 let SpecularColor = [0.97, 0.97, 0.97];
 let Shininess = 12;
 let LightIntensity = 1;
@@ -20,11 +19,9 @@ let World_X = 0;
 let World_Y = 0;
 let World_Z = 0;
 let CameraPosition = [0, 0, -10]
-
+let texturePoint = [0, 0]
 let WorldOrigin = [0, 0, 0]
-
 let LightPosition = [0, 0, 5]
-
 let isAnimating = false;
 let fps = 60;
 let reqAnim;
@@ -32,6 +29,7 @@ let currentAnimationTime = 0;
 let animationSpeed = 0;
 let AnimationVelocity = [1, 1, 0];
 let ShowPath = false;
+let rotateValue = 0;
 
 function SwitchAnimation(){
 
@@ -93,13 +91,21 @@ function Line(name, program){
         gl.drawArrays(gl.LINE_STRIP, 0, 2);
     }
 }
+
 // Constructor
 function Model(name) {
+    let phiMax = Math.PI * 2;
+    let phiMin = 0;
+    let vMax = Math.PI * 0.5;
+    let vMin = 0;
+
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
     this.iNormalBuffer = gl.createBuffer();
+    this.iTextureBuffer = gl.createBuffer();
 
     this.count = 0;
+    this.countTexture = 0;
 
     this.BufferData = function (vertices, normals) {
 
@@ -110,6 +116,14 @@ function Model(name) {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
 
         this.count = vertices.length / 3;
+    }
+
+    this.TextureBufferData = function (textureCoords) {
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STREAM_DRAW);
+
+        this.countTexture = textureCoords.length / 2;
     }
 
     this.Draw = function (projectionViewMatrix) {
@@ -142,7 +156,14 @@ function Model(name) {
         gl.uniform3fv(shProgram.iCamWorldPosition, CameraPosition);
         gl.uniform3fv(shProgram.iLightDirection, GetDirLightDirection());
 
+        gl.uniform2fv(shProgram.iRotationPoint, texturePoint);
+
+        let point = CalculateCorrugatedSpherePoint(map(texturePoint[0], 0, 1,phiMin, phiMax), map(texturePoint[1], 0, 1,vMin, vMax));
+        gl.uniform3fv(shProgram.iPointVizualizationPosition, [point.x, point.y, point.z]);
+        gl.uniform1f(shProgram.iRotationValue, rotateValue);
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
 
@@ -150,11 +171,15 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iNormalVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iNormalVertex);
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.vertexAttribPointer(shProgram.iTextureCoords2D, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iTextureCoords2D);
+        gl.uniform1i(shProgram.iTexture, 0);
+        gl.enable(gl.TEXTURE_2D);
+
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
     }
 }
-
-
 // Constructor
 function ShaderProgram(name, program) {
 
@@ -164,6 +189,8 @@ function ShaderProgram(name, program) {
     this.iSolidColor = -1;
     this.iAttribVertex = -1;
     this.iNormalVertex = -1;
+    this.iTextureCoords2D = -1;
+    this.iTexture = -1;
 
     this.iModelViewProjectionMatrix = -1;
     this.iWorldInverseTranspose = -1;
@@ -180,6 +207,10 @@ function ShaderProgram(name, program) {
     this.iLightDirection = -1;
     this.iCamWorldPosition = -1;
 
+    this.iPointVizualizationPosition = -1;
+    this.iRotationPoint = -1;
+    this.iRotationValue = -1;
+
     this.Use = function () {
         gl.useProgram(this.prog);
     }
@@ -190,7 +221,6 @@ function SwitchShowPath(){
     draw();
 }
 
-
 /* Draws a colored cube, along with a set of coordinate axes.
  * (Note that the use of the above drawPrimitive function is not an efficient
  * way to draw with WebGL.  Here, the geometry is so simple that it doesn't matter.)
@@ -199,15 +229,10 @@ function draw() {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
-    /* Set the values of the projection transformation */
     let projectionMatrix = m4.perspective(scale, 2, 1, 40);
     const viewMatrix = m4.lookAt(CameraPosition, WorldOrigin, [0, 1, 0]);
     const camRotation = m4.axisRotation([0, 1, 0], 179);
     const projectionViewMatrix = m4.multiply(projectionMatrix, m4.multiply(viewMatrix, camRotation));
-
-    lineProgram.Use();
-    line.Draw(projectionViewMatrix);
 
     if(ShowPath){
         segmentProgram.Use();
@@ -225,15 +250,17 @@ function GetDirLightDirection(){
 
 
 function CreateSurfaceData() {
-    let vertexList = [];
-    let normalsList = [];
-
     let phiMax = Math.PI * 2;
     let phiMin = 0;
     let vMax = Math.PI * 0.5;
     let vMin = 0;
-    let phiStep = phiMax / 50;
-    let vStep = vMax / 50;
+
+    let vertexList = [];
+    let normalsList = [];
+    let textureList = [];
+
+    let phiStep = phiMax / 100;
+    let vStep = vMax / 100;
 
     for (let phi = phiMin; phi < phiMax + phiStep; phi += phiStep) {
         for (let v = vMin; v < vMax + vStep; v += vStep) {
@@ -245,6 +272,24 @@ function CreateSurfaceData() {
             let n3 = CalcAnalyticNormal(phi, v + vStep, bvert)
             let cvert = CalculateCorrugatedSpherePoint(phi + phiStep, v + vStep)
             let n4 = CalcAnalyticNormal(phi + phiStep, v + vStep, cvert)
+
+            let u1 = map(phi, 0, phiMax, 0, 1)
+            let v1 = map(v, 0, vMax, 0, 1)
+            textureList.push(u1, v1)
+            u1 = map(phi + phiStep, 0, phiMax, 0, 1)
+            textureList.push(u1, v1)
+            u1 = map(phi, 0, phiMax, 0, 1)
+            v1 = map(v + vStep, 0, vMax, 0, 1)
+            textureList.push(u1, v1)
+            u1 = map(phi + phiStep, 0, phiMax, 0, 1)
+            v1 = map(v, 0, vMax, 0, 1)
+            textureList.push(u1, v1)
+            v1 = map(v + vStep, 0, vMax, 0, 1)
+            textureList.push(u1, v1)
+            u1 = map(phi, 0, phiMax, 0, 1)
+            v1 = map(v + vStep, 0, vMax, 0, 1)
+            textureList.push(u1, v1)
+
 
             vertexList.push(vert.x, vert.y, vert.z)
             normalsList.push(n1.x, n1.y, n1.z)
@@ -262,7 +307,13 @@ function CreateSurfaceData() {
         }
     }
 
-    return [vertexList, normalsList];
+    return [vertexList, normalsList, textureList];
+}
+
+function map(val, f1, t1, f2, t2) {
+    let m;
+    m = (val - f1) * (t2 - f2) / (t1 - f1) + f2
+    return Math.min(Math.max(m, f2), t2);
 }
 
 function CalcAnalyticNormal(u, v, xyz)
@@ -323,18 +374,10 @@ function CalculateCorrugatedSpherePoint(phi, v) {
 }
 
 
-
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
 
-    SetupSurface();
-    BuildSurface();
-
-    SetupLine();
-    BuildLine();
-
-    SetupSegment();
-    BuildSegment();
+    LoadTexture();
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -346,7 +389,7 @@ function SetupSegment(){
     segmentProgram = new ShaderProgram('Segment', prog);
     segmentProgram.Use();
 
-    segmentProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
+    segmentProgram.iAttribVertex = gl.getAttribLocation(prog, "position");
     segmentProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     segmentProgram.iSolidColor = gl.getUniformLocation(prog, "color");
 }
@@ -363,7 +406,7 @@ function SetupLine(){
     lineProgram = new ShaderProgram('Line', prog);
     lineProgram.Use();
 
-    lineProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
+    lineProgram.iAttribVertex = gl.getAttribLocation(prog, "position");
     lineProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
     lineProgram.iSolidColor = gl.getUniformLocation(prog, "color");
 }
@@ -377,6 +420,7 @@ function BuildSurface(){
     surface = new Model('Surface');
     let data = CreateSurfaceData();
     surface.BufferData(data[0], data[1]);
+    surface.TextureBufferData(data[2]);
 }
 
 function SetupSurface(){
@@ -386,7 +430,9 @@ function SetupSurface(){
     shProgram = new ShaderProgram('Basic', prog);
     shProgram.Use();
 
-    shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
+    shProgram.iAttribVertex = gl.getAttribLocation(prog, "position");
+    shProgram.iTextureCoords2D = gl.getAttribLocation(prog, "textureCoord");
+
     shProgram.iNormalVertex = gl.getAttribLocation(prog, "normal");
 
     shProgram.iWorldInverseTranspose = gl.getUniformLocation(prog, "WorldInverseTranspose");
@@ -403,6 +449,11 @@ function SetupSurface(){
 
     shProgram.iLightDirection = gl.getUniformLocation(prog, "LightDirection");
     shProgram.iCamWorldPosition = gl.getUniformLocation(prog, "CamWorldPosition");
+
+    shProgram.iTexture = gl.getUniformLocation(prog, "textureSampler");
+    shProgram.iRotationPoint = gl.getUniformLocation(prog, "rotationPoint");
+    shProgram.iRotationValue = gl.getUniformLocation(prog, "rotationValue");
+    shProgram.iPointVizualizationPosition = gl.getUniformLocation(prog, "pointVizualizationPosition");
 }
 
 
@@ -477,53 +528,71 @@ function init() {
         return false;
     };
 
+    //draw();
+}
+
+
+window.onkeydown = (e) => {
+    switch (e.keyCode) {
+        case 65:
+            texturePoint[0] += 0.01;
+            break;
+        case 68:
+            texturePoint[0] -= 0.01;
+            break;
+        case 87:
+            texturePoint[1] += 0.01;
+            break;
+        case 83:
+            texturePoint[1] -= 0.01;
+            break;
+    }
+    texturePoint[1] = Math.max(0.001, Math.min(texturePoint[1], 0.999))
+
+    if(texturePoint[0] >= 1){
+        texturePoint[0] = 0.001;
+    }
+    else if(texturePoint[0] <= 0){
+        texturePoint[0] = 0.99;
+    }
     draw();
 }
 
-window.addEventListener("keydown", function (event) {
-    switch (event.key) {
-        case "ArrowLeft":
-        case "a":
-        case "A":
-            World_X -= 0.1;
-            draw();
-            break;
-        case "ArrowRight":
-        case "d":
-        case "D":
-            World_X += 0.1;
-            draw();
-            break;
-        case "ArrowDown":
-        case "s":
-        case "S":
-            World_Y -= 0.1;
-            draw();
-            break;
-        case "ArrowUp":
-        case "w":
-        case "W":
-            World_Y += 0.1;
-            draw();
-            break;
-        case "+":
-            if (Shininess < 10) {
-                Shininess += 1;
-            }
-            draw();
-            document.getElementById("Shininess").value = Shininess;
-            document.getElementById("Shininess_text").innerHTML = Shininess;
-            break;
-        case "-":
-            if (Shininess > -10) {
-                Shininess -= 1;
-            }
-            draw();
-            document.getElementById("Shininess").value = Shininess;
-            document.getElementById("Shininess_text").innerHTML = Shininess;
-            break;
-        default:
-            return;
 
+let isLoadedTexture = false;
+
+function LoadTexture() {
+    let texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    const image = new Image();
+    image.crossOrigin = 'anonymus';
+
+    image.src = "https://raw.githubusercontent.com/JuiceJune/VISUALIZATION-OF-GRAPHICAL-AND-GEOMETRIC-INFORMATION-LABS/cgw/texture.jpg";
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            image
+        );
+
+        SetupSurface();
+        BuildSurface();
+
+        SetupLine();
+        BuildLine();
+
+        SetupSegment();
+        BuildSegment();
+
+
+        draw()
     }
-});
+}
+
